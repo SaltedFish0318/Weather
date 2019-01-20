@@ -86,6 +86,16 @@ public class Utility {
         return false;
     }
 
+    /**
+     * 将返回的JSON数据解析程Weather实体类
+     */
+    public static Weather hanleWeatherResponse(String weatherResponse, String aqiResponse) {
+        Weather weather = new Weather();
+        weather.aqiInfo = handleAQIInfoResonse(aqiResponse);
+        weather.weatherInfo = handleWeatherInfoResonse(weatherResponse);
+        return weather;
+    }
+
 
     /**
      * 将返回的JSON数据解析成Weather.AQIInfo实体类

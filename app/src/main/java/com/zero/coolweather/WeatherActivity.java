@@ -1,5 +1,6 @@
 package com.zero.coolweather;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.opengl.Visibility;
@@ -24,6 +25,7 @@ import com.bumptech.glide.Glide;
 import com.zero.coolweather.gson.Forecast;
 import com.zero.coolweather.gson.Suggestion;
 import com.zero.coolweather.gson.Weather;
+import com.zero.coolweather.service.AutoUpdateService;
 import com.zero.coolweather.util.HttpUtil;
 import com.zero.coolweather.util.Utility;
 
@@ -132,13 +134,37 @@ public class WeatherActivity extends AppCompatActivity {
         });
 
         //加载必应每日一图
-        loadBingPic();
-
+        String bingPic = prefs.getString("bing_pic", null);
+        if(bingPic != null){
+            Glide.with(this).load(bingPic).into(bingPicImg);
+        }else{
+            loadBingPic();
+        }
     }
 
     public void loadBingPic(){
-        String bingPic = "https://cn.bing.com/az/hprichbg/rb/DivingEmperors_ZH-CN8118506169_1920x1080.jpg";
-        Glide.with(this).load(bingPic).into(bingPicImg);
+        String requestBingPic = "http://guolin.tech/api/bing_pic";
+        HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String bingPic = response.body().string();
+                SharedPreferences.Editor editor = PreferenceManager
+                        .getDefaultSharedPreferences(WeatherActivity.this).edit();
+                editor.putString("bing_pic",bingPic);
+                editor.apply();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Glide.with(WeatherActivity.this).load(bingPic).into(bingPicImg);
+                    }
+                });
+            }
+        });
     }
 
     /**
@@ -188,6 +214,8 @@ public class WeatherActivity extends AppCompatActivity {
         }
 
         weatherLayout.setVisibility(View.VISIBLE);
+        Intent intent = new Intent(this, AutoUpdateService.class);
+        startService(intent);
     }
 
     /**
