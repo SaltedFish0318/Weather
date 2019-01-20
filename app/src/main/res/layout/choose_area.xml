@@ -7,6 +7,11 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
+        android:layout_height="20dp"
+        android:background="?attr/colorPrimary"/>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorPrimary">
 
