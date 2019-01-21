@@ -1,5 +1,8 @@
 package com.zero.coolweather;
 
+import android.app.Fragment;
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -22,6 +25,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.zero.coolweather.db.MyCity;
 import com.zero.coolweather.gson.Forecast;
 import com.zero.coolweather.gson.Suggestion;
 import com.zero.coolweather.gson.Weather;
@@ -29,6 +33,7 @@ import com.zero.coolweather.service.AutoUpdateService;
 import com.zero.coolweather.util.HttpUtil;
 import com.zero.coolweather.util.Utility;
 
+import org.litepal.crud.DataSupport;
 import org.w3c.dom.Text;
 
 import java.io.IOException;
@@ -71,6 +76,8 @@ public class WeatherActivity extends AppCompatActivity {
 
     private Button navButton;
 
+    private ChooseAreaFragment chooseAreaFragment;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,6 +92,8 @@ public class WeatherActivity extends AppCompatActivity {
         setContentView(R.layout.activity_weather);
 
         //初始化各控件
+        chooseAreaFragment = (ChooseAreaFragment)getSupportFragmentManager()
+                .findFragmentById(R.id.choose_area_fragment);
         swipeRefresh = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
         swipeRefresh.setColorSchemeColors(getResources().getColor(R.color.colorPrimary));
         weatherLayout = (ScrollView) findViewById(R.id.weather_layout);
@@ -92,7 +101,7 @@ public class WeatherActivity extends AppCompatActivity {
         titleUpdateTime = (TextView) findViewById(R.id.title_update_time);
         degreeText = (TextView) findViewById(R.id.degree_text);
         weatherInfoText = (TextView) findViewById(R.id.weather_info_text);
-        forecastLayout = (LinearLayout)findViewById(R.id.forecase_layout);
+        forecastLayout = (LinearLayout)findViewById(R.id.forecast_layout);
         aqiText = (TextView) findViewById(R.id.aqi_text);
         pm25Text = (TextView) findViewById(R.id.pm25_text);
         comfortText = (TextView) findViewById(R.id.comfort_text);
@@ -111,6 +120,7 @@ public class WeatherActivity extends AppCompatActivity {
             weather.weatherInfo = Utility.handleWeatherInfoResonse(weatherString);
             weather.aqiInfo = Utility.handleAQIInfoResonse(aqiString);
             mWeatherId = weather.weatherInfo.basic.weatherId;
+            chooseAreaFragment.myPosition = mWeatherId;
             showWeatherInfo(weather,0);
         }else{
             //无缓存时去服务器查询天气
@@ -173,6 +183,17 @@ public class WeatherActivity extends AppCompatActivity {
     private void showWeatherInfo(Weather weather,int updateMode) {
         if (updateMode == 1 || updateMode == 0) {
 
+
+            if((DataSupport.where("cityName=?" , weather.weatherInfo.basic.cityName)
+                    .find(MyCity.class)).size() == 0){
+                MyCity myCity = new MyCity();
+                myCity.setCityName(weather.weatherInfo.basic.cityName);
+                myCity.setWeatherId(weather.weatherInfo.basic.weatherId);
+                myCity.save();
+
+                chooseAreaFragment.loadMyCityListView();
+            }
+
             String cityName = weather.weatherInfo.basic.cityName;
             String updateTime = "数据更新时间：" + weather.weatherInfo.update.updateTime;
             String degree = weather.weatherInfo.now.temperature + "℃";
@@ -195,13 +216,15 @@ public class WeatherActivity extends AppCompatActivity {
                 forecastLayout.addView(view);
             }
 
-            for (Suggestion suggestion : weather.weatherInfo.lifestyleList) {
-                if (suggestion.type.equals("comf")){
-                    comfortText.setText("舒适度：" + suggestion.txt);
-                } else if (suggestion.type.equals("cw")) {
-                    carWashText.setText("洗车指数：" + suggestion.txt);
-                } else if (suggestion.type.equals("sport")) {
-                    sportText.setText("运动建议" + suggestion.txt);
+            if(weather.weatherInfo.lifestyleList != null) {
+                for (Suggestion suggestion : weather.weatherInfo.lifestyleList) {
+                    if (suggestion.type.equals("comf")) {
+                        comfortText.setText("舒适度：" + suggestion.txt);
+                    } else if (suggestion.type.equals("cw")) {
+                        carWashText.setText("洗车指数：" + suggestion.txt);
+                    } else if (suggestion.type.equals("sport")) {
+                        sportText.setText("运动建议" + suggestion.txt);
+                    }
                 }
             }
         }
@@ -256,7 +279,7 @@ public class WeatherActivity extends AppCompatActivity {
                             mWeatherId = weather.weatherInfo.basic.weatherId;
                             showWeatherInfo(weather,1);
                         }else{
-                            Toast.makeText(WeatherActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(WeatherActivity.this, "解析天气信息失败", Toast.LENGTH_SHORT).show();
                         }
                         swipeRefresh.setRefreshing(false);
                     }
@@ -270,7 +293,7 @@ public class WeatherActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(WeatherActivity.this, "获取空气信息失败", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(WeatherActivity.this, "解析空气信息失败", Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -278,6 +301,7 @@ public class WeatherActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 final String responseText = response.body().string();
+                Log.d("awdadwadwasdwasdwa",responseText);
                 weather.aqiInfo = Utility.handleAQIInfoResonse(responseText);
                 runOnUiThread(new Runnable() {
                     @Override
@@ -289,6 +313,7 @@ public class WeatherActivity extends AppCompatActivity {
                             editor.apply();
                             showWeatherInfo(weather,2);
                         }else{
+                            Log.d("66666666666666666","?????????");
                             Toast.makeText(WeatherActivity.this, "获取空气信息失败", Toast.LENGTH_SHORT).show();
                         }
                     }

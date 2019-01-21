@@ -1,11 +1,15 @@
 package com.zero.coolweather.util;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.google.gson.Gson;
 import com.zero.coolweather.db.City;
 import com.zero.coolweather.db.Country;
+import com.zero.coolweather.db.HotCity;
 import com.zero.coolweather.db.Province;
+import com.zero.coolweather.gson.HotCityGSON;
+import com.zero.coolweather.gson.QueryCity;
 import com.zero.coolweather.gson.Weather;
 
 import org.json.JSONArray;
@@ -87,6 +91,43 @@ public class Utility {
     }
 
     /**
+     * 处理服务器返回的热门城市数据
+     */
+    public static boolean handleHotCityResonse(String response){
+        try{
+            JSONObject jsonObject = new JSONObject(response);
+            JSONArray jsonArray = jsonObject.getJSONArray("HeWeather6");
+            String weatherContent = jsonArray.getJSONObject(0).toString();
+            HotCityGSON hotCityGSON = new Gson().fromJson(weatherContent,HotCityGSON.class);
+            for (int i = 0; i < hotCityGSON.basic.size(); i++){
+                HotCity hotCity = new HotCity();
+                hotCity.setWeatherId(hotCityGSON.basic.get(i).cid);
+                hotCity.setCityName(hotCityGSON.basic.get(i).location);
+                hotCity.save();
+            }
+            return true;
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * 处理服务器的查询城市的列表数据
+     */
+    public static QueryCity handleQueryCityResonse(String response){
+        try{
+            JSONObject jsonObject = new JSONObject(response);
+            JSONArray jsonArray = jsonObject.getJSONArray("HeWeather6");
+            String weatherContent = jsonArray.getJSONObject(0).toString();
+            return new Gson().fromJson(weatherContent,QueryCity.class);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
      * 将返回的JSON数据解析程Weather实体类
      */
     public static Weather hanleWeatherResponse(String weatherResponse, String aqiResponse) {
@@ -126,5 +167,7 @@ public class Utility {
         }
         return null;
     }
+
+
 
 }
