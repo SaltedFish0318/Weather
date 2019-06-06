@@ -8,4 +8,13 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="forecast_text_style">
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="forecast_icon_style">
+        <item name="android:layout_width">40dp</item>
+        <item name="android:layout_height">40dp</item>
+    </style>
+
 </resources>

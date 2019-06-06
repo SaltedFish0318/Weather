@@ -1,33 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+    android:orientation="horizontal"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="15dp">
+    android:layout_marginHorizontal="15dp"
+    android:layout_marginTop="15dp"
+    android:layout_marginBottom="5dp"
+    android:background="@drawable/card_background">
 
-    <TextView
-        android:id="@+id/degree_text"
+    <ImageView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="50dp"
+        android:id="@+id/weather_icon"/>
+
+    <LinearLayout
+        android:orientation="vertical"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:textColor="#fff"
-        android:textSize="60sp" />
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:layout_marginRight="15dp"
+        android:layout_marginVertical="10dp">
 
-    <TextView
-        android:id="@+id/weather_info_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:textColor="#fff"
-        android:textSize="20sp" />
+        <TextView
+            android:id="@+id/degree_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:text="N/A℃"
+            android:textSize="60sp" />
 
-    <TextView
-        android:id="@+id/title_update_time"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:textColor="#fff"
-        android:textSize="10sp" />
+        <TextView
+            android:id="@+id/weather_info_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:text="N/A"
+            android:textSize="30sp" />
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/title_update_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginTop="10dp"
+            android:text="数据更新时间：N/A"
+            android:textSize="10sp" />
+
+    </LinearLayout>
+
+</RelativeLayout>

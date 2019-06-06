@@ -14,6 +14,16 @@ public class HotCity extends DataSupport {
 
     private String weatherId;
 
+    public String getParentCity() {
+        return parentCity;
+    }
+
+    public void setParentCity(String parentCity) {
+        this.parentCity = parentCity;
+    }
+
+    private String parentCity;
+
     public void setId(int id) {
         this.id = id;
     }

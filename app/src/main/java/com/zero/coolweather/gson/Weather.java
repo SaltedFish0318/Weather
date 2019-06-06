@@ -22,6 +22,9 @@ public class Weather {
         @SerializedName("lifestyle")
         public List<Suggestion> lifestyleList;
 
+        @SerializedName("hourly")
+        public List<HourlyForecast> hourlyForecastList;
+
         public Now now;
 
         public String status;

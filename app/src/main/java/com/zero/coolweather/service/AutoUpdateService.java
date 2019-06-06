@@ -8,9 +8,7 @@ import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
-import android.widget.Toast;
 
-import com.zero.coolweather.WeatherActivity;
 import com.zero.coolweather.gson.Weather;
 import com.zero.coolweather.util.HttpUtil;
 import com.zero.coolweather.util.Utility;
@@ -34,7 +32,7 @@ public class AutoUpdateService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        updateWeater();
+        updateWeather();
         updateBingpic();
 
         AlarmManager manager = (AlarmManager)getSystemService(ALARM_SERVICE);
@@ -72,18 +70,20 @@ public class AutoUpdateService extends Service {
     /**
      * 更新天气信息
      */
-    private void updateWeater() {
+    private void updateWeather() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = prefs.getString("weather", null);
         String aqiString = prefs.getString("aqi", null);
         if (weatherString != null && aqiString != null) {
             //有缓存时直接解析天气数据
-            Weather weather = Utility.hanleWeatherResponse(weatherString,aqiString);
+            Weather weather = Utility.handleWeatherResponse(weatherString,aqiString);
             String weatherId = weather.weatherInfo.basic.weatherId;
+            String parent_city = weather.weatherInfo.basic.parentCity;
 
-            String parameters = "location=" + weatherId + "&key=205adaf1dd184d2eaa2327b33bfcb467";
-            String weatherUrl = "https://free-api.heweather.net/s6/weather?" + parameters;
-            String AQIUrl = "https://free-api.heweather.net/s6/air/now?" + parameters;
+            String parametersWeather = "location=" + weatherId + "&key=205adaf1dd184d2eaa2327b33bfcb467";
+            String weatherUrl = "https://free-api.heweather.net/s6/weather?" + parametersWeather;
+            String parametersWeatherAQI = "location=" + parent_city + "&key=205adaf1dd184d2eaa2327b33bfcb467";
+            String AQIUrl = "https://free-api.heweather.net/s6/air/now?" + parametersWeatherAQI;
 
             HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
                 @Override
@@ -94,7 +94,7 @@ public class AutoUpdateService extends Service {
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     String responseText = response.body().string();
-                    Weather.WeatherInfo weatherInfo = Utility.handleWeatherInfoResonse(responseText);
+                    Weather.WeatherInfo weatherInfo = Utility.handleWeatherInfoResponse(responseText);
                     if (weatherInfo != null && weatherInfo.status.equals("ok")) {
                         SharedPreferences.Editor editor = PreferenceManager
                                 .getDefaultSharedPreferences(AutoUpdateService.this).edit();
@@ -114,7 +114,7 @@ public class AutoUpdateService extends Service {
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     String responseText = response.body().string();
-                    Weather.AQIInfo aqiInfo = Utility.handleAQIInfoResonse(responseText);
+                    Weather.AQIInfo aqiInfo = Utility.handleAQIInfoResponse(responseText);
                     if (aqiInfo != null && aqiInfo.status.equals("ok")) {
                         SharedPreferences.Editor editor = PreferenceManager
                                 .getDefaultSharedPreferences(AutoUpdateService.this).edit();

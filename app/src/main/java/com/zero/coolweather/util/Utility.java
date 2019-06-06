@@ -23,77 +23,9 @@ import org.json.JSONObject;
 public class Utility {
 
     /**
-     * 解析和处理服务器返回的省级数据
-     */
-    public static boolean handleProvinceResponce(String responce){
-        if (!TextUtils.isEmpty(responce)){
-            try{
-                JSONArray allProvince = new JSONArray(responce);
-                for(int i = 0; i < allProvince.length(); i++){
-                    JSONObject provinceObject = allProvince.getJSONObject(i);
-                    Province province = new Province();
-                    province.setProvinceName(provinceObject.getString("name"));
-                    province.setProvinceCode(provinceObject.getInt("id"));
-                    province.save();
-                }
-                return true;
-            }catch (JSONException e){
-                e.printStackTrace();
-            }
-        }
-        return false;
-    }
-
-    /**
-     * 解析和处理服务器返回的市级数据
-     */
-    public static boolean handleCityResponce(String responce, int provinceId){
-        if(!TextUtils.isEmpty(responce)){
-            try{
-                JSONArray allCity = new JSONArray(responce);
-                for (int i = 0; i < allCity.length(); i++){
-                    JSONObject cityObject = allCity.getJSONObject(i);
-                    City city = new City();
-                    city.setCityName(cityObject.getString("name"));
-                    city.setCityCode(cityObject.getInt("id"));
-                    city.setProvinceId(provinceId);
-                    city.save();
-                }
-                return true;
-            }catch (JSONException e){
-                e.printStackTrace();
-            }
-        }
-        return false;
-    }
-
-    /**
-     * 解析和处理服务器返回的市级数据
-     */
-    public static boolean handleCountryResponce(String responce, int cityId){
-        if(!TextUtils.isEmpty(responce)){
-            try {
-                JSONArray allCountry = new JSONArray(responce);
-                for(int i = 0; i < allCountry.length(); i++){
-                    JSONObject countryObject = allCountry.getJSONObject(i);
-                    Country country = new Country();
-                    country.setCountryName(countryObject.getString("name"));
-                    country.setWeatherId(countryObject.getString("weather_id"));
-                    country.setCityId(cityId);
-                    country.save();
-                }
-                return true;
-            }catch (JSONException e){
-                e.printStackTrace();
-            }
-        }
-        return false;
-    }
-
-    /**
      * 处理服务器返回的热门城市数据
      */
-    public static boolean handleHotCityResonse(String response){
+    public static boolean handleHotCityResponse(String response){
         try{
             JSONObject jsonObject = new JSONObject(response);
             JSONArray jsonArray = jsonObject.getJSONArray("HeWeather6");
@@ -103,6 +35,7 @@ public class Utility {
                 HotCity hotCity = new HotCity();
                 hotCity.setWeatherId(hotCityGSON.basic.get(i).cid);
                 hotCity.setCityName(hotCityGSON.basic.get(i).location);
+                hotCity.setParentCity(hotCityGSON.basic.get(i).parent_city);
                 hotCity.save();
             }
             return true;
@@ -115,7 +48,7 @@ public class Utility {
     /**
      * 处理服务器的查询城市的列表数据
      */
-    public static QueryCity handleQueryCityResonse(String response){
+    public static QueryCity handleQueryCityResponse(String response){
         try{
             JSONObject jsonObject = new JSONObject(response);
             JSONArray jsonArray = jsonObject.getJSONArray("HeWeather6");
@@ -128,12 +61,12 @@ public class Utility {
     }
 
     /**
-     * 将返回的JSON数据解析程Weather实体类
+     * 将返回的JSON数据解析成Weather实体类
      */
-    public static Weather hanleWeatherResponse(String weatherResponse, String aqiResponse) {
+    public static Weather handleWeatherResponse(String weatherResponse, String aqiResponse) {
         Weather weather = new Weather();
-        weather.aqiInfo = handleAQIInfoResonse(aqiResponse);
-        weather.weatherInfo = handleWeatherInfoResonse(weatherResponse);
+        weather.aqiInfo = handleAQIInfoResponse(aqiResponse);
+        weather.weatherInfo = handleWeatherInfoResponse(weatherResponse);
         return weather;
     }
 
@@ -141,7 +74,7 @@ public class Utility {
     /**
      * 将返回的JSON数据解析成Weather.AQIInfo实体类
      */
-    public static Weather.AQIInfo handleAQIInfoResonse(String response){
+    public static Weather.AQIInfo handleAQIInfoResponse(String response){
         try{
             JSONObject jsonObject = new JSONObject(response);
             JSONArray jsonArray = jsonObject.getJSONArray("HeWeather6");
@@ -156,7 +89,7 @@ public class Utility {
     /**
      * 将返回的JSON数据解析成Weather.WeatherInfo实体类
      */
-    public static Weather.WeatherInfo handleWeatherInfoResonse(String response){
+    public static Weather.WeatherInfo handleWeatherInfoResponse(String response){
         try{
             JSONObject jsonObject = new JSONObject(response);
             JSONArray jsonArray = jsonObject.getJSONArray("HeWeather6");
@@ -167,7 +100,5 @@ public class Utility {
         }
         return null;
     }
-
-
 
 }
