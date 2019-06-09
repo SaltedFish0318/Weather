@@ -6,9 +6,6 @@
     <version value="2"/>
 
     <list>
-        <mapping class="com.zero.coolweather.db.Province"/>
-        <mapping class="com.zero.coolweather.db.City"/>
-        <mapping class="com.zero.coolweather.db.Country"/>
         <mapping class="com.zero.coolweather.db.HotCity"/>
         <mapping class="com.zero.coolweather.db.MyCity"/>
     </list>

@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.v4.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.zero.coolweather.views.CustomHorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:id="@+id/custom_hor_view"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@drawable/card_background"
     android:layout_marginVertical="5dp"
     android:layout_marginHorizontal="15dp"
+    android:scrollbars="none"
     >
 
     <LinearLayout
@@ -16,4 +18,4 @@
 
     </LinearLayout>
 
-</android.support.v4.widget.NestedScrollView>
+</com.zero.coolweather.views.CustomHorizontalScrollView>

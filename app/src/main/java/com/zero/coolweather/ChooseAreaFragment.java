@@ -1,14 +1,10 @@
 package com.zero.coolweather;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.provider.ContactsContract;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.text.Editable;
@@ -31,12 +27,8 @@ import com.baidu.location.BDLocation;
 import com.baidu.location.BDLocationListener;
 import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
-import com.zero.coolweather.db.City;
-import com.zero.coolweather.db.Country;
 import com.zero.coolweather.db.HotCity;
 import com.zero.coolweather.db.MyCity;
-import com.zero.coolweather.db.Province;
-import com.zero.coolweather.gson.HotCityGSON;
 import com.zero.coolweather.gson.QueryCity;
 import com.zero.coolweather.util.HttpUtil;
 import com.zero.coolweather.util.Utility;
@@ -50,16 +42,8 @@ import java.util.List;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
-import okhttp3.internal.Util;
-
-/**
- * Created by 86738 on 2019/1/19.
- */
 
 public class ChooseAreaFragment extends Fragment {
-
-    //位置已获取
-    private boolean FLAG_LOCATION_GET = false;
 
     //位置
     public LocationClient mLocationClient;
@@ -69,9 +53,6 @@ public class ChooseAreaFragment extends Fragment {
 
     //标题
     private TextView titleText;
-
-    //返回按钮
-    //private Button backButton;
 
     //切换按钮
     private Button turnButton;
@@ -95,11 +76,16 @@ public class ChooseAreaFragment extends Fragment {
     //我的城市适配器
     private ArrayAdapter<String> myCityAdapter;
 
+    //城市列表List
     private List<String> dataList = new ArrayList<>();
 
+    //我的天气列表List
     private List<String> myDataList = new ArrayList<>();
 
+    //我的位置
     public String myPosition;
+
+    //我的位置所在父级城市
     public String myPositionCity;
 
     /**
@@ -126,8 +112,6 @@ public class ChooseAreaFragment extends Fragment {
         mLocationClient = new LocationClient(getActivity().getApplicationContext());
         mLocationClient.registerLocationListener(new MyLocationListener());
         titleText = (TextView) view.findViewById(R.id.title_text);
-//        backButton = (Button) view.findViewById(R.id.back_button);
-//        backButton.setVisibility(View.GONE);
         listView = (ListView) view.findViewById(R.id.list_view);
         turnButton = (Button) view.findViewById(R.id.turn_button);
         myCityRL = (RelativeLayout) view.findViewById(R.id.my_city_list);
@@ -141,12 +125,18 @@ public class ChooseAreaFragment extends Fragment {
         return view;
     }
 
+    /**
+     * 判断位置服务开启
+     * @return
+     */
     public boolean isLocationStarted(){
         return mLocationClient.isStarted();
     }
 
+    /**
+     * 重启位置服务
+     */
     public void restartLocation(){
-        //isFirstTimeGetLocation = true;
         mLocationClient.restart();
     }
 
@@ -155,9 +145,11 @@ public class ChooseAreaFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
         Log.d("活动创建","碎片创建");
 
+        //我的城市列表点击监听器
         myCityListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                //天气查询
                 String weatherId = myCityList.get(position).getCityName();
                 WeatherActivity activity = (WeatherActivity) getActivity();
                 activity.drawerLayout.closeDrawers();
@@ -166,9 +158,11 @@ public class ChooseAreaFragment extends Fragment {
             }
         });
 
+        //我的城市列表长按监听器
         myCityListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                //删除城市
                 String deleteCityName = myCityList.get(position).getCityName();
                 DataSupport.deleteAll(MyCity.class, "cityName=?", deleteCityName);
                 loadMyCityListView();
@@ -177,6 +171,7 @@ public class ChooseAreaFragment extends Fragment {
             }
         });
 
+        //城市列表点击监听器
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -185,28 +180,35 @@ public class ChooseAreaFragment extends Fragment {
                 String parentCity = "";
                 int flag = 0;
                 if (chooseAreaEdit.getText().toString().equals("")) {
+                    //搜索框为空
                     if (position != 0) {
+                        //没有点击定位获取
                         weatherId = hotCityList.get(position - 1).getWeatherId();
                         parentCity = hotCityList.get(position - 1).getParentCity();
                     } else {
+                        //点击定位获取
                         if(!mLocationClient.isStarted())
-                            mLocationClient.start();
+                            mLocationClient.start();    //开启定位
+                        else
+                            mLocationClient.requestLocation(); //请求位置
 
                         Log.d("选择使用定位","选择定位");
-                        showProgressDialog();
+                        showProgressDialog();   //等待框显示
                         flag = 1;
                     }
                 } else {
+                    //搜索框不为空，重搜索的列表中查询
                     weatherId = queryCityList.get(position).cid;
                     parentCity = queryCityList.get(position).parent_city;
                     chooseAreaEdit.setText("");
                 }
 
-                if(flag == 0)
+                if(flag == 0)   //没有使用定位，跳转
                     turnToWeather(weatherId,parentCity);
             }
         });
 
+        //我的城市和第一页城市的切换按钮
         turnButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -226,6 +228,7 @@ public class ChooseAreaFragment extends Fragment {
             }
         });
 
+        //搜索框改变后自动查询输入内容的城市
         chooseAreaEdit.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -250,16 +253,20 @@ public class ChooseAreaFragment extends Fragment {
             }
         });
 
-        //queryProvinces();
         queryHotCity();
         myCityRL.setVisibility(View.GONE);
-        requestMyPosition();
-        //loadMyCityListView();
+        initLocation();
     }
 
+    /**
+     * 通过城市天气ID，父级城市来获取天气和空气信息
+     * @param weatherId
+     * @param parentCity
+     */
     private void turnToWeather(String weatherId,String parentCity){
         if (!TextUtils.isEmpty(weatherId)) {
             if (getActivity() instanceof MainActivity) {
+                //如果在初始的MainActivity则需要跳转到WeatherActivity活动
                 Log.d("页面跳转",weatherId);
                 Intent intent = new Intent(getActivity(), WeatherActivity.class);
                 intent.putExtra("weather_id", weatherId);
@@ -267,6 +274,7 @@ public class ChooseAreaFragment extends Fragment {
                 startActivity(intent);
                 getActivity().finish();
             } else if (getActivity() instanceof WeatherActivity) {
+                //如果在WeatherActivity活动则直接查询
                 WeatherActivity activity = (WeatherActivity) getActivity();
                 activity.drawerLayout.closeDrawers();
                 activity.swipeRefresh.setRefreshing(true);
@@ -275,18 +283,19 @@ public class ChooseAreaFragment extends Fragment {
         }
     }
 
-    public void requestMyPosition() {
-        initLocation();
-    }
-
+    /**
+     * 初始化位置
+     */
     private void initLocation() {
         isFirstTimeGetLocation = true;
         LocationClientOption option = new LocationClientOption();
         option.setIsNeedAddress(true);
-        //option.setScanSpan(2*60*1000);
         mLocationClient.setLocOption(option);
     }
 
+    /**
+     * 从数据库中加载我的城市
+     */
     public void loadMyCityListView() {
 
         myCityList = DataSupport.findAll(MyCity.class);
@@ -302,6 +311,7 @@ public class ChooseAreaFragment extends Fragment {
 
     /**
      * 查找城市
+     * @param keyWord
      */
     private void queryCityByKeyWord(String keyWord) {
         String parameters = "location=" + keyWord +  "&key=205adaf1dd184d2eaa2327b33bfcb467";
@@ -316,6 +326,7 @@ public class ChooseAreaFragment extends Fragment {
 
         hotCityList = DataSupport.findAll(HotCity.class);
         if (hotCityList.size() > 0) {
+            //若数据库中存在数据
             dataList.clear();
             dataList.add("定位获取");
             for (HotCity hotCity : hotCityList) {
@@ -324,6 +335,7 @@ public class ChooseAreaFragment extends Fragment {
             adapter.notifyDataSetChanged();
             listView.setSelection(0);
         } else {
+            //数据库中没有数据，调用查找
             String parameters = "group=cn" +  "&key=205adaf1dd184d2eaa2327b33bfcb467";
             String hotCityUrl = "https://search.heweather.net/top?" + parameters;
             queryFromServer(hotCityUrl,"hotCity");
@@ -333,6 +345,8 @@ public class ChooseAreaFragment extends Fragment {
 
     /**
      * 根据传入的地址和类型从服务器上查询省市县数据
+     * @param address
+     * @param type
      */
     private void queryFromServer(String address, final String type) {
         //showProgressDialog();
@@ -342,7 +356,6 @@ public class ChooseAreaFragment extends Fragment {
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        //closeProgressDialog();
                         Toast.makeText(getContext(), "加载失败", Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -350,16 +363,19 @@ public class ChooseAreaFragment extends Fragment {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
+                //请求成功
                 String responseText = response.body().string();
                 boolean result = true;
 
                 if ("hotCity".equals(type)) {
+                    //请求类型为热门城市
                     result = Utility.handleHotCityResponse(responseText);
                 } else if ("queryCity".equals(type)) {
+                    //请求类型为城市搜索
                     QueryCity queryCity = Utility.handleQueryCityResponse(responseText);
                     queryCityList = queryCity.basic;
                     if (queryCity.status.equals("ok")) {
-                        Log.d("66666666666666666", "true");
+                        //返回JSON成功
                         dataList.clear();
                         for (QueryCity.Basic query : queryCityList) {
                             dataList.add(query.location);
@@ -367,19 +383,19 @@ public class ChooseAreaFragment extends Fragment {
                         getActivity().runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                            adapter.notifyDataSetChanged();
-                            listView.setSelection(0);
+                                adapter.notifyDataSetChanged();
+                                listView.setSelection(0);
                             }
                         });
 
                         result = true;
                     }else{
-                        Log.d("66666666666666666", "false");
                         result = false;
                     }
                 }
 
                 if (result) {
+                    //在主线程中更新界面
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -394,12 +410,18 @@ public class ChooseAreaFragment extends Fragment {
         });
     }
 
+    /**
+     * 关闭等待框
+     */
     private void closeProgressDialog() {
         if (progressDialog != null) {
             progressDialog.dismiss();
         }
     }
 
+    /**
+     * 显示等待框
+     */
     private void showProgressDialog() {
         if(progressDialog == null){
             progressDialog = new ProgressDialog(getActivity());
@@ -409,17 +431,16 @@ public class ChooseAreaFragment extends Fragment {
         progressDialog.show();
     }
 
+    /**
+     * 天气获取监听器
+     */
     public class MyLocationListener implements BDLocationListener{
         @Override
         public void onReceiveLocation(BDLocation bdLocation) {
             myPosition = bdLocation.getDistrict();
-            if (mLocationClient.isStarted()) {
-                mLocationClient.stop();
-            }
 
             if (myPosition != null && !myPosition.equals("")) {
                 Log.d("定位成功",myPosition);
-                //FLAG_LOCATION_GET = true;
                 myPositionCity = bdLocation.getCity();
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
@@ -430,7 +451,7 @@ public class ChooseAreaFragment extends Fragment {
                     }
                 });
             } else {
-                //FLAG_LOCATION_GET = false;
+
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -450,6 +471,7 @@ public class ChooseAreaFragment extends Fragment {
     @Override
     public void onDestroy(){
         super.onDestroy();
+        //介绍位置获取
         if(mLocationClient.isStarted()){
             mLocationClient.stop();
         }

@@ -4,10 +4,6 @@ import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
-/**
- * Created by 86738 on 2019/1/20.
- */
-
 public class Weather {
 
     public static WeatherInfo weatherInfo;

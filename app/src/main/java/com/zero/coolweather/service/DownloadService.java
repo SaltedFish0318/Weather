@@ -1,7 +1,6 @@
 package com.zero.coolweather.service;
 
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Binder;
@@ -21,9 +20,11 @@ public class DownloadService extends Service {
 
     private String downloadUrl;
 
+    //下载监听器
     private DownloadListener listener = new DownloadListener() {
         @Override
         public void onSuccess(String file) {
+            //下载成功
             downloadTask = null;
             Toast.makeText(DownloadService.this, "下载成功！", Toast.LENGTH_SHORT).show();
 
@@ -35,6 +36,7 @@ public class DownloadService extends Service {
 
         @Override
         public void onFailed() {
+            //下载失败
             downloadTask = null;
             Toast.makeText(DownloadService.this, "下载失败！", Toast.LENGTH_SHORT).show();
         }
@@ -50,6 +52,10 @@ public class DownloadService extends Service {
 
     public class DownloadBinder extends Binder{
 
+        /**
+         * 开始下载
+         * @param url
+         */
         public void startDownload(String url){
             Log.d("开始下载",url);
             if(downloadTask == null){

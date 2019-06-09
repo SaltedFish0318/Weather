@@ -4,10 +4,6 @@ import org.litepal.crud.DataSupport;
 
 import java.util.List;
 
-/**
- * Created by 86738 on 2019/1/20.
- */
-
 public class HotCityGSON extends DataSupport {
 
     public List<Basic> basic;

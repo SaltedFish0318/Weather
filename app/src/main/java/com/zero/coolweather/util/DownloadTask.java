@@ -24,16 +24,22 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
 
     private DownloadListener listener;
 
+    //获取监听器
     public DownloadTask(DownloadListener listener){
         this.listener = listener;
     }
 
+    /**
+     * 在后台进行的线程操作
+     * @param strings
+     * @return
+     */
     @Override
     protected Integer doInBackground(String... strings) {
         InputStream is = null;
         RandomAccessFile savedFile = null;
-        File file = null;
-        File fileDir = null;
+        File file = null;   //文件
+        File fileDir = null;    //文件目录
 
         int result = TYPE_FAILED;
 
@@ -43,7 +49,7 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
             directory = Environment.getExternalStorageDirectory().getPath() + "/BUGWeather/";
             fileDir = new File(directory);
             if(!fileDir.exists()){
-                fileDir.mkdir();
+                fileDir.mkdirs();
             }
 
             file = new File(directory + fileName);
@@ -60,6 +66,7 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
                 int len = 0;
                 int total = 0;
 
+                //将内容逐行写入本地文件
                 while((len = is.read(b)) != -1){
                     savedFile.write(b,0,len);
                     total += len;

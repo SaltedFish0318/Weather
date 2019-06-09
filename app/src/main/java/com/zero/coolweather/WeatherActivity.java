@@ -1,27 +1,13 @@
 package com.zero.coolweather;
 
-import android.Manifest;
-import android.app.Fragment;
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.net.Uri;
-import android.opengl.Visibility;
-import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Environment;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.renderscript.ScriptGroup;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -31,7 +17,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewParent;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -51,20 +36,12 @@ import com.zero.coolweather.service.AutoUpdateService;
 import com.zero.coolweather.service.DownloadService;
 import com.zero.coolweather.util.HttpUtil;
 import com.zero.coolweather.util.Utility;
+import com.zero.coolweather.views.CustomHorizontalScrollView;
 
 import org.litepal.crud.DataSupport;
-import org.w3c.dom.Text;
-
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -74,6 +51,7 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
 
     private DownloadService.DownloadBinder downloadBinder;
 
+    //下载服务连接Binder获取
     private ServiceConnection connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -104,10 +82,13 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
     //体感温度
     private TextView feelTmpText;
 
+    //天气预报布局
     private LinearLayout forecastLayout;
 
+    //逐小时预报布局
     private LinearLayout hourlyForecastLayout;
 
+    //生活建议布局
     private LinearLayout suggestionLayout;
 
     //空气质量
@@ -128,6 +109,7 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
     //城市天气id
     private String mWeatherId;
 
+    //父级城市
     private String mParentCity;
 
     //抽屉
@@ -144,6 +126,9 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
 
     private RelativeLayout statusBarAddHigh;
 
+    //逐小时预报横向滑动布局
+    private CustomHorizontalScrollView customHorizontalScrollView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -157,7 +142,7 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
 
         setContentView(R.layout.activity_weather);
 
-        //初始化各控件
+        //实例化各控件
         chooseAreaFragment = (ChooseAreaFragment)getSupportFragmentManager()
                 .findFragmentById(R.id.choose_area_fragment);
 
@@ -181,6 +166,7 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
         navButton = (Button) findViewById(R.id.nav_button);
         titleMenuButton = (Button) findViewById(R.id.title_menu);
         weatherIcon = (ImageView) findViewById(R.id.weather_icon);
+        customHorizontalScrollView = (CustomHorizontalScrollView)findViewById(R.id.custom_hor_view);
 
         //从内存中查找hash信息
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
@@ -204,10 +190,24 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
             requestWeather(mWeatherId,mParentCity);
         }
 
+        //下拉刷新
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
                 requestWeather(mWeatherId,mParentCity);
+            }
+        });
+
+        //在逐小时天气显示控件中横向滑动时禁用下拉刷新
+        customHorizontalScrollView.setOnScrollStateChangedListener(new CustomHorizontalScrollView.ScrollViewListener() {
+            @Override
+            public void onScrollChanged(CustomHorizontalScrollView.ScrollType scrollType) {
+                if(scrollType == CustomHorizontalScrollView.ScrollType.TOUCH){
+                    swipeRefresh.setEnabled(false);
+                }else{
+                    swipeRefresh.setEnabled(true);
+                }
+
             }
         });
 
@@ -233,6 +233,10 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
         statusBarAddHigh.setVisibility(View.VISIBLE);
     }
 
+    /**
+     * 加载Bing背景 type=1是加载背景，type=2是下载背景
+     * @param type
+     */
     public void loadBingPic(final int type){
         String requestBingPic = "http://guolin.tech/api/bing_pic";
         HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
@@ -244,6 +248,7 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 final String bingPic = response.body().string();
+                //保存到本地
                 SharedPreferences.Editor editor = PreferenceManager
                         .getDefaultSharedPreferences(WeatherActivity.this).edit();
                 editor.putString("bing_pic",bingPic);
@@ -252,6 +257,7 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
                     @Override
                     public void run() {
                         if(type == 1)
+                            //填充图片
                             Glide.with(WeatherActivity.this).load(bingPic).into(bingPicImg);
                         else{
                             saveBingPicToLocal();
@@ -262,6 +268,27 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
         });
     }
 
+    /**
+     * 判断天气是否有夜间图标
+     * @param cond_code
+     * @return
+     */
+    private boolean hasNightIcon(String cond_code){
+
+        if(cond_code.equals("100") || cond_code.equals("103") || cond_code.equals("104")
+                || cond_code.equals("301")  || cond_code.equals("406")
+                || cond_code.equals("407") || cond_code.equals("300")){
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 通过天气代码和当前时间获取天气图标地址
+     * @param cond_code
+     * @return
+     */
     private String getIconUrl(String cond_code){
 
         String url = "https://cdn.heweather.com/cond_icon/" + cond_code;
@@ -269,10 +296,9 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH-mm-ss");
         String nowTime = simpleDateFormat.format(new Date());
 
+        //判断是否存在夜间显示图片
         if((nowTime.compareTo("06-00-00")<0 || nowTime.compareTo("18-00-00")>0)
-                && (cond_code.equals("100") || cond_code.equals("103")
-                || cond_code.equals("104") || cond_code.equals("301")
-                || cond_code.equals("407"))){
+                && hasNightIcon(cond_code)){
 
             Log.d("处于夜间：","true");
             url += "n";
@@ -281,13 +307,17 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
         return url + ".png";
     }
 
+    /**
+     * 根据天气代码和是否是夜间获取天气图标地址
+     * @param cond_code
+     * @param isNight
+     * @return
+     */
     private String getIconUrl(String cond_code, boolean isNight){
         String url = "https://cdn.heweather.com/cond_icon/" + cond_code;
 
         if(isNight){
-            if(cond_code.equals("100") || cond_code.equals("103")
-                    || cond_code.equals("104") || cond_code.equals("301")
-                    || cond_code.equals("407")){
+            if(hasNightIcon(cond_code)){
 
                 url += "n";
             }
@@ -296,13 +326,16 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
         return url + ".png";
     }
 
+    /**
+     * 根据天气代码和时间获取天气图片地址
+     * @param cond_code
+     * @param time
+     * @return
+     */
     private String getIconUrl(String cond_code, String time){
         String url = "https://cdn.heweather.com/cond_icon/" + cond_code;
 
-        if((time.compareTo("06-00-00")<0 || time.compareTo("18-00-00")>0) &&
-                cond_code.equals("100") || cond_code.equals("103")
-                || cond_code.equals("104") || cond_code.equals("301")
-                || cond_code.equals("407")){
+        if((time.compareTo("06-00-00")<0 || time.compareTo("18-00-00")>0) && hasNightIcon(cond_code)){
 
             url += "n";
         }
@@ -312,13 +345,18 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
 
     /**
      * 处理并展示Weather实体类中的数据
+     *
+     * @param weather
+     * @param updateMode
      */
-    private void showWeatherInfo(Weather weather,int updateMode) {
+    private void showWeatherInfo(Weather weather, int updateMode) {
+
+        //updateMode=1为更新天气信息，=2为更新空气情况
         if (updateMode == 1 || updateMode == 0) {
 
-
-            if((DataSupport.where("cityName=?" , weather.weatherInfo.basic.cityName)
-                    .find(MyCity.class)).size() == 0){
+            //从数据库读取我的城市
+            if ((DataSupport.where("cityName=?", weather.weatherInfo.basic.cityName)
+                    .find(MyCity.class)).size() == 0) {
                 MyCity myCity = new MyCity();
                 myCity.setCityName(weather.weatherInfo.basic.cityName);
                 myCity.setWeatherId(weather.weatherInfo.basic.weatherId);
@@ -328,8 +366,9 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
                 chooseAreaFragment.loadMyCityListView();
             }
 
-            Log.d("天气代码1：",weather.weatherInfo.now.cond_code);
+            Log.d("天气代码1：", weather.weatherInfo.now.cond_code);
 
+            //更新现在的天气
             Glide.with(WeatherActivity.this).load(getIconUrl(weather.weatherInfo.now.cond_code)).into(weatherIcon);
             String cityName = weather.weatherInfo.basic.cityName;
             String updateTime = "数据更新时间：" + weather.weatherInfo.update.updateTime;
@@ -342,25 +381,24 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
             feelTmpText.setText(feelTmp);
             weatherInfoText.setText(weatherInfo);
 
+            //更新天气预报
             forecastLayout.removeAllViews();
             int day = 0;
             for (Forecast forecast : weather.weatherInfo.forecastList) {
                 View view = LayoutInflater.from(this).inflate(R.layout.forecast_item, forecastLayout, false);
                 TextView dateText = (TextView) view.findViewById(R.id.date_text);
-//                TextView infoText = (TextView) view.findViewById(R.id.info_text);
                 TextView maxText = (TextView) view.findViewById(R.id.max_text);
                 TextView minText = (TextView) view.findViewById(R.id.min_text);
                 ImageView infoIconD = (ImageView) view.findViewById(R.id.info_icon_d);
                 ImageView infoIconN = (ImageView) view.findViewById(R.id.info_icon_n);
 
-                String infoIconDUrl = "https://cdn.heweather.com/cond_icon/" + forecast.cond_code_d + ".png";
-                Glide.with(WeatherActivity.this).load(getIconUrl(forecast.cond_code_d,false)).into(infoIconD);
+                Glide.with(WeatherActivity.this).load(getIconUrl(forecast.cond_code_d, false)).into(infoIconD);
 
-                Log.d("天气代码2：",forecast.cond_code_n);
-                Glide.with(WeatherActivity.this).load(getIconUrl(forecast.cond_code_n,true)).into(infoIconN);
+                Log.d("天气代码2：", forecast.cond_code_n);
+                Glide.with(WeatherActivity.this).load(getIconUrl(forecast.cond_code_n, true)).into(infoIconN);
 
                 String date = "";
-                switch (day){
+                switch (day) {
                     case 0:
                         date = "今天 ";
                         break;
@@ -384,24 +422,26 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
                 forecastLayout.addView(view);
             }
 
-            if(weather.weatherInfo.hourlyForecastList != null){
+            //更新逐小时预报
+            if (weather.weatherInfo.hourlyForecastList != null) {
                 hourlyForecastLayout.removeAllViews();
-                for(HourlyForecast hourlyForecast : weather.weatherInfo.hourlyForecastList){
-                    View view = LayoutInflater.from(this).inflate(R.layout.hour_forecast_item,hourlyForecastLayout,false);
+                for (HourlyForecast hourlyForecast : weather.weatherInfo.hourlyForecastList) {
+                    View view = LayoutInflater.from(this).inflate(R.layout.hour_forecast_item, hourlyForecastLayout, false);
                     TextView tmpText = (TextView) view.findViewById(R.id.hourly_tmp_txt);
                     ImageView weatherIcon = (ImageView) view.findViewById(R.id.hourly_cond_icon);
                     TextView timeText = (TextView) view.findViewById(R.id.hourly_time_txt);
 
-                    String time = hourlyForecast.time.substring(hourlyForecast.time.indexOf(' ')+1);
+                    String time = hourlyForecast.time.substring(hourlyForecast.time.indexOf(' ') + 1);
 
-                    Glide.with(WeatherActivity.this).load(getIconUrl(hourlyForecast.cond_code,time)).into(weatherIcon);
-                    tmpText.setText(hourlyForecast.tmp);
+                    Glide.with(WeatherActivity.this).load(getIconUrl(hourlyForecast.cond_code, time)).into(weatherIcon);
+                    tmpText.setText(hourlyForecast.tmp + "℃");
                     timeText.setText(time);
                     hourlyForecastLayout.addView(view);
                 }
             }
 
-            if(weather.weatherInfo.lifestyleList != null) {
+            //更新生活建议
+            if (weather.weatherInfo.lifestyleList != null) {
                 suggestionLayout.removeAllViews();
                 for (Suggestion suggestion : weather.weatherInfo.lifestyleList) {
                     View view = LayoutInflater.from(this).inflate(R.layout.suggestion_item, suggestionLayout, false);
@@ -414,15 +454,15 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
                         type = "穿衣指数";
                     } else if (suggestion.type.equals("flu")) {
                         type = "感冒指数";
-                    } else if (suggestion.type.equals("sport")){
+                    } else if (suggestion.type.equals("sport")) {
                         type = "运动指数";
-                    } else if (suggestion.type.equals("trav")){
+                    } else if (suggestion.type.equals("trav")) {
                         type = "旅游指数";
-                    } else if (suggestion.type.equals("uv")){
+                    } else if (suggestion.type.equals("uv")) {
                         type = "紫外线指数";
-                    } else if (suggestion.type.equals("cw")){
+                    } else if (suggestion.type.equals("cw")) {
                         type = "洗车指数";
-                    } else if (suggestion.type.equals("air")){
+                    } else if (suggestion.type.equals("air")) {
                         type = "空气污染扩散条件指数";
                     }
 
@@ -446,6 +486,11 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
         startService(intent);
     }
 
+    /**
+     * 请求天气信息
+     * @param weather
+     * @param weatherUrl
+     */
     private void requestWeatherInfo(final Weather weather,String weatherUrl){
         HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
             @Override
@@ -463,10 +508,13 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
             public void onResponse(Call call, Response response) throws IOException {
                 final String responseText = response.body().string();
                 weather.weatherInfo = Utility.handleWeatherInfoResponse(responseText);
+                //在主线程中修改界面
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        //处理请求信息
                         if(weather.weatherInfo != null && "ok".equals(weather.weatherInfo.status)){
+                            //请求成功，更新界面信息
                             SharedPreferences.Editor editor = PreferenceManager
                                     .getDefaultSharedPreferences(WeatherActivity.this).edit();
                             editor.putString("weather",responseText);
@@ -490,6 +538,11 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
         });
     }
 
+    /**
+     * 获取空气信息
+     * @param weather
+     * @param AQIUrl
+     */
     private void requestWeatherAQI(final Weather weather, final String AQIUrl){
         HttpUtil.sendOkHttpRequest(AQIUrl, new Callback() {
             @Override
@@ -509,7 +562,9 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        //处理请求信息
                         if(weather.aqiInfo != null && "ok".equals(weather.aqiInfo.status)){
+                            //请求成功
                             SharedPreferences.Editor editor = PreferenceManager
                                     .getDefaultSharedPreferences(WeatherActivity.this).edit();
                             editor.putString("aqi",responseText);
@@ -533,10 +588,12 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
 
     /**
      * 根据天气id请求城市天气信息
+     * @param weatherId
+     * @param parent_city
      */
     public void requestWeather(final String weatherId,final String parent_city){
 
-        //Log.d("父城市", parent_city);
+
         String parametersWeather = "location=" + weatherId + "&key=205adaf1dd184d2eaa2327b33bfcb467";
         String weatherUrl = "https://free-api.heweather.net/s6/weather?" + parametersWeather;
         String parametersWeatherAQI = "location=" + parent_city + "&key=205adaf1dd184d2eaa2327b33bfcb467";
@@ -544,8 +601,8 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
 
         final Weather weather = new Weather();
 
-        requestWeatherInfo(weather,weatherUrl);
-        requestWeatherAQI(weather,AQIUrl);
+        requestWeatherInfo(weather,weatherUrl); //请求天气信息
+        requestWeatherAQI(weather,AQIUrl);  //请求空气信息
         swipeRefresh.setRefreshing(false);
 
     }
@@ -555,11 +612,13 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
         Log.d("点击事件", "onclick");
         switch (v.getId()){
             case R.id.nav_button: {
+                //打开抽屉
                 drawerLayout.openDrawer(GravityCompat.START);
                 break;
             }
 
             case R.id.title_menu: {
+                //右上角弹出菜单
                 final PopupMenu popupMenu = new PopupMenu(WeatherActivity.this,v);
                 popupMenu.getMenuInflater().inflate(R.menu.menu, popupMenu.getMenu());
                 popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
@@ -585,6 +644,9 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
         }
     }
 
+    /**
+     * 保存Bing背景
+     */
     private void saveBingPicToLocal() {
         if(downloadBinder == null){
             Log.d("开始下载", "downloadBinder为空");
@@ -606,6 +668,7 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        //接触服务绑定
         unbindService(connection);
     }
 }

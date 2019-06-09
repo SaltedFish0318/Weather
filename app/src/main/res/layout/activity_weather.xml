@@ -39,7 +39,7 @@
 
                     <include layout="@layout/info_after_now"/>
 
-                    <!--<include layout="@layout/hour_forecast"/>-->
+                    <include layout="@layout/hour_forecast"/>
 
                     <include layout="@layout/forecast"/>
 
