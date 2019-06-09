@@ -491,7 +491,7 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
      * @param weather
      * @param weatherUrl
      */
-    private void requestWeatherInfo(final Weather weather,String weatherUrl){
+    private void requestWeatherInfo(final Weather weather, String weatherUrl, final String AQIUrl){
         HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -521,7 +521,9 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
                             editor.apply();
                             mWeatherId = weather.weatherInfo.basic.weatherId;
                             mParentCity = weather.weatherInfo.basic.parentCity;
-                            showWeatherInfo(weather,1);
+                            showWeatherInfo(weather, 1);
+
+                            requestWeatherAQI(weather,AQIUrl);  //请求空气信息
                         }else if(weather.weatherInfo != null && "no data for this location".equals(weather.weatherInfo.status)){
                             Toast.makeText(WeatherActivity.this, "该城市/地区没有数据", Toast.LENGTH_SHORT).show();
                         }else if(weather.weatherInfo != null && "no more requests".equals(weather.weatherInfo.status)){
@@ -601,8 +603,7 @@ public class WeatherActivity extends AppCompatActivity implements View.OnClickLi
 
         final Weather weather = new Weather();
 
-        requestWeatherInfo(weather,weatherUrl); //请求天气信息
-        requestWeatherAQI(weather,AQIUrl);  //请求空气信息
+        requestWeatherInfo(weather,weatherUrl,AQIUrl); //请求天气信息
         swipeRefresh.setRefreshing(false);
 
     }
